@@ -11,6 +11,7 @@ wget https://github.com/saleh-gholamian/openvpn-freeradius-plugin/archive/refs/t
 tar xvf v2.2.tar.gz
 cd openvpn-freeradius-plugin-2.2
 make
+```
 
 
 
@@ -272,8 +273,7 @@ First, we change the time zone of our server to our region, for me it is Iran:
 timedatectl set-timezone Asia/Tehran
 ```
 
-Now we write a cron job to restart the freeradius and openvpn services once a day at 04:00 am.
-
+Now we write a cron job to restart the freeradius and openvpn services once a day at 04:00 am. 
 You may be asked for the type of editor after this command, type **1** and enter.
 ```bash
 crontab -e
@@ -288,7 +288,7 @@ It is better to restart cron at the end
 sudo systemctl restart cron
 ```
 
-Now the work is done
+Now the work is done.
 
 
 
