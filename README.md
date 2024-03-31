@@ -201,6 +201,10 @@ In the image below, we have created a user named test with a maximum connection 
  We have also specified that his account will expire 30 days after the first connection.
  We have also specified that every 600 seconds of data His accounting was updated and saved.
 
+![alt text](https://github.com/saleh-gholamian/openvpn-with-freeradius/blob/main/create_user.png)
+
+
+
 
 **#5 Solve some problems:**
 
@@ -267,8 +271,27 @@ Now we need to restart the freeradius service
 systemctl daemon-reload
 systemctl restart freeradius
 ```
+First, we change the time zone of our server to our region, for me it is Iran:
+```bash
+timedatectl set-timezone Asia/Tehran
+```
 
+Now we write a cron job to restart the freeradius and openvpn services once a day at 04:00 am.
+You may be asked for the type of editor after this command, type **1** and enter.
+```bash
+crontab -e
+```
+Add the following line at the end of the file and save the file
+```bash
+0 4 * * * systemctl restart freeradius && sleep 5 && systemctl restart openvpn@server
+```
 
+It is better to restart cron at the end
+```bash
+sudo systemctl restart cron
+```
+
+Now the work is done
 
 
 **#7 **
