@@ -188,14 +188,16 @@ anyway we can still set attributes on users and This is also useful for me.
 Below I show how to create a user and set the counters we created for him, I also add an attribute that updates the accounting data every 10 minutes.
 
 We follow the following path in the Daloradius management panel
+
 **Manament** -> **Users** -> **New User**
+
 First, in the Account Info tab, we define a username and password for the new user
 Then we enter the Attributes tab and select the "Quickly Locate attribute with autocomplete input" section and write the names of the attributes
 and click on add, then enter the desired value for each one and finally click on Apply.
 
-In the image below, we have created a user named test with a maximum connection limit of 2 simultaneous sessions and 100 gigs of monthly traffic.
-We have also specified that his account will expire 30 days after the first connection
-and specified that every 600 seconds of data His accounting was updated and saved.
+In the image below, we have created a user named test with a maximum connection limit of **2 simultaneous sessions** and **100 gigs** of monthly traffic.
+We have also specified that his account will expire **30 days** after the first connection 
+and specified that every **600 seconds** of data His accounting was updated and saved.
 
 ![alt text](https://github.com/saleh-gholamian/openvpn-with-freeradius/blob/main/create_user.png)
 
