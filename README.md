@@ -8,16 +8,9 @@ apt install libgcrypt20-dev
 ```
 ```bash
 wget https://github.com/saleh-gholamian/openvpn-freeradius-plugin/archive/refs/tags/v2.2.tar.gz
-```
-```bash
 tar xvf v2.2.tar.gz
-```
-```bash
 cd openvpn-freeradius-plugin-2.2
-```
-```bash
 make
-```
 
 
 
@@ -186,6 +179,7 @@ systemctl restart freeradius
 
 
 **#4 Configure dallo radius and create user**
+
 Unfortunately, at the moment, the attributes only work if they are applied to the user himself,
 and if you want to create different profiles with different attributes and then set these profiles for users,
 don't worry, this will not work! I tried a lot to understand why it doesn't work or is this a problem at all or is it normal but there is no useful information available but I think this is a freeradius bug,
@@ -294,14 +288,4 @@ sudo systemctl restart cron
 Now the work is done
 
 
-**#7 **
-```bash
 
-```
-
-
-
-**#8 **
-```bash
-
-```
