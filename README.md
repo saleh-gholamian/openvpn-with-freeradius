@@ -237,7 +237,7 @@ Now you need to open the freeradius service:
 ```bash
 nano /etc/systemd/system/multi-user.target.wants/freeradius.service
 ```
-You need to add the following line after [Service].
+You need to add the following line after **[Service]**.
 
 _ExecStartPost=/etc/freeradius/3.0/cleanup_sessions.sh_
 
