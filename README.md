@@ -238,7 +238,9 @@ Now you need to open the freeradius service:
 nano /etc/systemd/system/multi-user.target.wants/freeradius.service
 ```
 You need to add the following line after [Service].
+
 _ExecStartPost=/etc/freeradius/3.0/cleanup_sessions.sh_
+
 The content of this file after adding the above line should be as follows:
 ```bash
 [Unit]
@@ -271,6 +273,7 @@ timedatectl set-timezone Asia/Tehran
 ```
 
 Now we write a cron job to restart the freeradius and openvpn services once a day at 04:00 am.
+
 You may be asked for the type of editor after this command, type **1** and enter.
 ```bash
 crontab -e
