@@ -3,7 +3,6 @@ Openvpn + Freeradius configuration on Ubuntu server
 
 
 **#1 Build openvpn radiusplugin**
-We can 
 ```bash
 apt install libgcrypt20-dev
 ```
@@ -23,6 +22,7 @@ make
 
 
 **#2 Configure openvpn**
+
 First, we create a folder for the plugin
 ```bash
 cd /etc/openvpn
@@ -87,6 +87,7 @@ systemctl restart openvpn@server
 
 
 **#3 Configure Freeradius**
+
 First, you need to add the sqlcounter module
 ```bash
 cd /etc/freeradius/3.0/mods-enabled
@@ -191,7 +192,7 @@ don't worry, this will not work! I tried a lot to understand why it doesn't work
 anyway we can still set attributes on users and This is also useful for me.
 Below I show how to create a user and set the counters we created for him, I also add an attribute that updates the accounting data every 10 minutes.
 
-- We follow the following path in the Daloradius management panel
+We follow the following path in the Daloradius management panel
 Manament -> Users -> New User
 First, in the Account Info tab, we define a username and password for the new user
 Then we enter the Attributes tab and select the "Quickly Locate attribute with autocomplete input" section and write the names of the attributes
@@ -202,21 +203,71 @@ In the image below, we have created a user named test with a maximum connection 
 
 
 **#5 Solve some problems:**
+
 There is one scenario, when freeradius is unable to receive the disconnect event from the NAS for any reason, 
 the sessions that were open will remain open forever and this will cause the user to fail to login again, for example when the server to In the case of a sudden restart,
 the sessions that were open at the time will remain open forever.
 To solve this problem, when starting the freeradius service, we use a query to close all the open sessions in the database, 
 also to make this query work better. We repeat using cron job once a day
 
-
+First, we create a script:
 ```bash
-
+nano /etc/freeradius/3.0/cleanup_sessions.sh
 ```
-
+Enter the following codes and save the file:
 **#6 **
 ```bash
+#!/bin/bash
 
+DB_USER="radius"
+DB_PASS="PASSWORD"
+DB_NAME="radius"
+
+mysql -u"$DB_USER" -p"$DB_PASS" -D "$DB_NAME" <<EOF
+UPDATE radacct
+SET acctstoptime = NOW()
+WHERE acctstoptime IS NULL;
+EOF
 ```
+
+Give execute permission to the script created
+```bash
+sudo chmod +x /etc/freeradius/3.0/cleanup_sessions.sh
+```
+
+Now you need to open the freeradius service:
+```bash
+nano /etc/systemd/system/multi-user.target.wants/freeradius.service
+```
+You need to add the following line after [Service].
+_ExecStartPost=/etc/freeradius/3.0/cleanup_sessions.sh_
+The content of this file after adding the above line should be as follows:
+```bash
+[Unit]
+Description=FreeRADIUS multi-protocol policy server
+After=network.target
+Documentation=man:radiusd(8) man:radiusd.conf(5) http://wiki.freeradius.org/ ht>
+
+[Service]
+Type=notify
+PIDFile=/run/freeradius/freeradius.pid
+EnvironmentFile=-/etc/default/freeradius
+ExecStartPre=/etc/freeradius/3.0/cleanup_sessions.sh
+ExecStartPre=/usr/sbin/freeradius $FREERADIUS_OPTIONS -Cxm -lstdout
+ExecStart=/usr/sbin/freeradius -f $FREERADIUS_OPTIONS
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Now we need to restart the freeradius service
+```bash
+systemctl daemon-reload
+systemctl restart freeradius
+```
+
 
 
 
