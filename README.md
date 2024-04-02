@@ -79,7 +79,6 @@ systemctl restart openvpn@server
 
 
 
-
 **#3 Configure Freeradius**
 
 First, you need to add the sqlcounter module
@@ -158,7 +157,8 @@ sqlcounter monthly_traffic {
 }
 ```
 
-We need to introduce the added counters to freeradius, for this, open the following file
+We need to introduce the added counters to freeradius, also currently freeradius ignores almost all the attributes that are applied to the profiles.
+That's why we add some custom code to check them, To do this, open the following file:
 ```bash
 nano /etc/freeradius/3.0/sites-enabled/default
 ```
@@ -169,6 +169,71 @@ expire_after
 daily_traffic
 weekly_traffic
 monthly_traffic
+
+#Additional code is needed to check user groups (profile) attributes
+#Check Max-Sessions-Limit
+update control {
+	&Tmp-Integer-1 := "%{sql:SELECT rc.value FROM radgroupcheck rc INNER JOIN radusergroup rug ON rc.groupname = rug.groupname WHERE rug.username = '%{User-Name}' and rc.attribute = 'Max-Sessions-Limit'}"
+}
+
+if(&control:Tmp-Integer-1 > 0) {
+	update control {
+		&Tmp-Integer-2 := "%{sql:SELECT COUNT(*) FROM radacct WHERE username = '%{User-Name}' AND acctstoptime IS NULL}"
+	}
+	
+	if(&control:Tmp-Integer-1 <= &control:Tmp-Integer-2) {
+		update reply {
+			Reply-Message = "Your simultaneous connection is complete"
+		}
+		reject
+	}
+
+} 
+
+#Check Expire-After-Login
+update control {
+	&Tmp-Integer-3 := "%{sql:SELECT rc.value FROM radgroupcheck rc INNER JOIN radusergroup rug ON rc.groupname = rug.groupname WHERE rug.username = '%{User-Name}' and rc.attribute = 'Expire-After-Login'}"
+}
+
+if(&control:Tmp-Integer-3 > 0) {
+	update control {
+		&Tmp-Integer-4 := "%{sql:SELECT IFNULL( MAX(TIME_TO_SEC(TIMEDIFF(NOW(), acctstarttime))),0) FROM radacct WHERE username = '%{User-Name}' ORDER BY acctstarttime LIMIT 1}"
+	}
+	
+	if(&control:Tmp-Integer-3 <= &control:Tmp-Integer-4) {
+		update reply {
+			Reply-Message = "Your account has expired"
+		}
+		reject
+	}
+}
+
+#Check Daily-Traffic-Limit
+update control {
+	&Tmp-Integer-5 := "%{sql:SELECT rc.value FROM radgroupcheck rc INNER JOIN radusergroup rug ON rc.groupname = rug.groupname WHERE rug.username = '%{User-Name}' and rc.attribute = 'Daily-Traffic-Limit'}"
+}
+
+if(&control:Tmp-Integer-5 > 0) {
+	update control {
+		&Tmp-Integer-6 := "%{sql:SELECT SUM(acctinputoctets) + SUM(acctoutputoctets) FROM radacct WHERE username = '%{User-Name}'}"
+	}
+	
+	if(&control:Tmp-Integer-5 <= &control:Tmp-Integer-6) {
+		update reply {
+			Reply-Message = "Your daily traffic capacity has been exhausted"
+		}
+		reject
+	}
+}
+
+#Accounting data updates every 15 minutes
+update control {
+	&Tmp-Integer-7 := "%{sql:SELECT value FROM radreply WHERE username = '%{User-Name}' and attribute = 'Acct-Interim-Interval'}"
+}
+
+if(&control:Tmp-Integer-7 == 0) {
+	%{sql:INSERT IGNORE INTO radreply (username, attribute, op, value) VALUES ('%{User-Name}', 'Acct-Interim-Interval', ':=', 900)}
+}
 ```
 
 Now we need to restart the freeradius service
@@ -181,19 +246,13 @@ systemctl restart freeradius
 
 **#4 Configure dallo radius and create user**
 
-Unfortunately, at the moment, the attributes only work if they are applied to the user himself,
-and if you want to create different profiles with different attributes and then set these profiles for users,
-don't worry, this will not work! I tried a lot to understand why it doesn't work or is this a problem at all or is it normal but there is no useful information available but I think this is a freeradius bug,
-anyway we can still set attributes on users and This is also useful for me.
-Below I show how to create a user and set the counters we created for him, I also add an attribute that updates the accounting data every 10 minutes.
+Below I show how to create a account and set the counters we created for it,
 
-We follow the following path in the Daloradius management panel
+-In the picture below, we have created an account with a test username with a maximum connection limit of **2 simultaneous sessions** and **100 gigs** of monthly traffic.
+We have also specified that his account expires **30 days** after the first connection
+And specified that every **600 seconds** of his accounting data is updated and saved.-
 
-**Manament** -> **Users** -> **New User**
-
-In the image below, we have created a user named test with a maximum connection limit of **2 simultaneous sessions** and **100 gigs** of monthly traffic.
-We have also specified that his account will expire **30 days** after the first connection 
-and specified that every **600 seconds** of data His accounting was updated and saved.
+Also, another method is that you can create one or more profiles and add attributes to them and then set profiles for your users.
 
 ![alt text](https://github.com/saleh-gholamian/openvpn-with-freeradius/blob/main/create_user.png)
 
