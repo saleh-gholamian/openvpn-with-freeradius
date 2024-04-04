@@ -170,7 +170,7 @@ daily_traffic
 weekly_traffic
 monthly_traffic
 
-#Additional code is needed to check user groups (profile) attributes
+#Additional code is needed to check profile attributes
 #Check Max-Sessions-Limit
 update control {
 	&Tmp-Integer-1 := "%{sql:SELECT rc.value FROM radgroupcheck rc INNER JOIN radusergroup rug ON rc.groupname = rug.groupname WHERE rug.username = '%{User-Name}' and rc.attribute = 'Max-Sessions-Limit'}"
@@ -226,13 +226,49 @@ if(&control:Tmp-Integer-5 > 0) {
 	}
 }
 
+#Check Weekly-Traffic-Limit
+update control {
+	&Tmp-Integer-5 := "%{sql:SELECT rc.value FROM radgroupcheck rc INNER JOIN radusergroup rug ON rc.groupname = rug.groupname WHERE rug.username = '%{User-Name}' and rc.attribute = 'Weekly-Traffic-Limit'}"
+}
+
+if(&control:Tmp-Integer-5 > 0) {
+	update control {
+		&Tmp-Integer-6 := "%{sql:SELECT SUM(acctinputoctets) + SUM(acctoutputoctets) FROM radacct WHERE username = '%{User-Name}'}"
+	}
+	
+	if(&control:Tmp-Integer-5 <= &control:Tmp-Integer-6) {
+		update reply {
+			Reply-Message = "Your weekly traffic capacity has been exhausted"
+		}
+		reject
+	}
+}
+
+#Check Monthly-Traffic-Limit
+update control {
+	&Tmp-Integer-5 := "%{sql:SELECT rc.value FROM radgroupcheck rc INNER JOIN radusergroup rug ON rc.groupname = rug.groupname WHERE rug.username = '%{User-Name}' and rc.attribute = 'Monthly-Traffic-Limit'}"
+}
+
+if(&control:Tmp-Integer-5 > 0) {
+	update control {
+		&Tmp-Integer-6 := "%{sql:SELECT SUM(acctinputoctets) + SUM(acctoutputoctets) FROM radacct WHERE username = '%{User-Name}'}"
+	}
+	
+	if(&control:Tmp-Integer-5 <= &control:Tmp-Integer-6) {
+		update reply {
+			Reply-Message = "Your monthly traffic capacity has been exhausted"
+		}
+		reject
+	}
+}
+
 #Accounting data updates every 15 minutes
 update control {
 	&Tmp-Integer-7 := "%{sql:SELECT value FROM radreply WHERE username = '%{User-Name}' and attribute = 'Acct-Interim-Interval'}"
 }
 
 if(&control:Tmp-Integer-7 == 0) {
-	%{sql:INSERT IGNORE INTO radreply (username, attribute, op, value) VALUES ('%{User-Name}', 'Acct-Interim-Interval', ':=', 900)}
+	%{sql:INSERT IGNORE INTO radreply (username, attribute, op, value) VALUES ('%{User-Name}', 'Acct-Interim-Interval', ':=', 1200)}
 }
 ```
 
